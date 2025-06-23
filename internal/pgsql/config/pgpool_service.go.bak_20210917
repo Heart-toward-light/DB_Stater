@@ -1,0 +1,78 @@
+/*
+@Author : WuWeiJian
+@Date : 2021-04-16 18:08
+*/
+
+package config
+
+import (
+	"fmt"
+	"gopkg.in/ini.v1"
+)
+
+type Unit struct {
+	Description   string `ini:"Description"`
+	Documentation string `ini:"Documentation"`
+}
+
+type Service struct {
+	Type           string   `ini:"Type"`
+	User           string   `ini:"User"`
+	Environment    []string `ini:"Environment"`
+	OOMScoreAdjust string   `ini:"OOMScoreAdjust"`
+	ExecStart      string   `ini:"ExecStart"`
+	ExecStop       string   `ini:"ExecStop"`
+	KillMode       string   `ini:"KillMode"`
+	Restart        string   `ini:"Restart"`
+	RestartSec     string   `ini:"RestartSec"`
+}
+
+type Install struct {
+	WantedBy string `ini:"WantedBy"`
+}
+
+type PgPoolService struct {
+	Unit    Unit    `ini:"Unit"`
+	Service Service `ini:"Service"`
+	Install Install `ini:"Install"`
+}
+
+func NewPgPoolService() *PgPoolService {
+	return &PgPoolService{
+		Unit: Unit{
+			Description:   "pgpool-II",
+			Documentation: "pgpool-II",
+		},
+		Service: Service{
+			Type: "forking",
+
+			OOMScoreAdjust: "-1000",
+			KillMode:       "mixed",
+			Restart:        "on-failure",
+			RestartSec:     "5s",
+		},
+		Install: Install{
+			WantedBy: "multi-user.target",
+		},
+	}
+}
+
+// HandleConfig 调整配置
+func (s *PgPoolService) HandleConfig(env []string, user, start, stop string) {
+	s.Service.Environment = env
+	s.Service.User = user
+	s.Service.ExecStart = start
+	s.Service.ExecStop = stop
+}
+
+// SaveTo 将Prepare实例数据写入配置文件
+func (s *PgPoolService) SaveTo(filename string) error {
+	cfg := ini.Empty(ini.LoadOptions{IgnoreInlineComment: true}) //AllowNestedValues: true 允许嵌套值,应该没用
+	if err := ini.ReflectFrom(cfg, s); err != nil {
+		return fmt.Errorf("pgpool.service 文件 映射到(%s)文件错误: %v", filename, err)
+	}
+	if err := cfg.SaveTo(filename); err != nil {
+		return fmt.Errorf("pgpool.service 文件 保存到(%s)文件错误: %v", filename, err)
+	}
+	return nil
+}

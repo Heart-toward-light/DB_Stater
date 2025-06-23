@@ -1,0 +1,45 @@
+// Created by LiuSainan on 2021-11-17 12:04:00
+
+package global
+
+import (
+	"dbup/internal/utils/command"
+	"fmt"
+	"strings"
+)
+
+type MissSoLibrariesfile struct {
+	Name   string
+	Info   string
+	Repair string
+}
+
+func Checkldd(c string) (ms []MissSoLibrariesfile, err error) {
+	cmd := fmt.Sprintf("ldd %s", c)
+	l := command.Local{}
+	stdout, stderr, err := l.Run(cmd)
+	if err != nil {
+		return ms, fmt.Errorf("修改数据目录所属用户失败: %v, 标准错误输出: %s", err, stderr)
+	}
+
+	for _, line := range strings.Split(string(stdout), "\n") {
+		if !strings.Contains(line, "not found") {
+			continue
+		}
+
+		var m MissSoLibrariesfile
+		m.Info = line
+		for k, v := range MissSoLibrariesAndRepairPlanList {
+			if strings.Contains(line, k) {
+				m.Name = k
+				m.Repair = v
+				break
+			}
+		}
+		ms = append(ms, m)
+	}
+
+	return ms, nil
+}
+
+

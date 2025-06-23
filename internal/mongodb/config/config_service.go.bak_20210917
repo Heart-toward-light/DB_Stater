@@ -1,0 +1,85 @@
+/*
+@Author : WuWeiJian
+@Date : 2021-05-10 16:12
+*/
+
+package config
+
+import (
+	"fmt"
+	"path/filepath"
+)
+
+type Unit struct {
+	Description   string `ini:"Description"`
+	Documentation string `ini:"Documentation"`
+	After         string `ini:"After"`
+	Wants         string `ini:"Wants"`
+}
+
+type Service struct {
+	Type        string   `ini:"Type"`
+	User        string   `ini:"User"`
+	Group       string   `ini:"Group"`
+	Environment []string `ini:"Environment"`
+	//ExecStartPre         []string `ini:"ExecStartPre"`
+	ExecStart string `ini:"ExecStart"`
+	//ExecStop             string   `ini:"ExecStop"`
+	PermissionsStartOnly bool   `ini:"PermissionsStartOnly"`
+	PIDFile              string `ini:"PIDFile"`
+	LimitFSIZE           string `ini:"LimitFSIZE"`
+	LimitCPU             string `ini:"LimitCPU"`
+	LimitAS              string `ini:"LimitAS"`
+	LimitNOFILE          int    `ini:"LimitNOFILE"`
+	LimitNPROC           int    `ini:"LimitNPROC"`
+	LimitMEMLOCK         string `ini:"LimitMEMLOCK"`
+	TasksMax             string `ini:"TasksMax"`
+	TasksAccounting      bool   `ini:"TasksAccounting"`
+	KillMode             string `ini:"KillMode"`
+	Restart              string `ini:"Restart"`
+	RestartSec           string `ini:"RestartSec"`
+}
+
+type Install struct {
+	WantedBy string `ini:"WantedBy"`
+}
+
+type MongoDBService struct {
+	Unit    Unit    `ini:"Unit"`
+	Service Service `ini:"Service"`
+	Install Install `ini:"Install"`
+}
+
+func NewMongoDBService(option *MongodbOptions, user, group string) *MongoDBService {
+	return &MongoDBService{
+		Unit: Unit{
+			Description:   "MongoDB Database Server",
+			Documentation: "https://docs.mongodb.org/manual",
+			After:         "network-online.target",
+			Wants:         "network-online.target",
+		},
+		Service: Service{
+			Type:                 "forking",
+			User:                 user,
+			Group:                group,
+			Environment:          []string{fmt.Sprintf("\"OPTIONS=-f %s\"", filepath.Join(option.Dir, DefaultMongoDBConfigDir, DefaultMongoDBConfigFile))},
+			ExecStart:            fmt.Sprintf("%s $OPTIONS", filepath.Join(option.Dir, DefaultMongoDBBinDir, DefaultMongoDBBinFile)),
+			PermissionsStartOnly: true,
+			PIDFile:              filepath.Join(option.Dir, "mongod.pid"),
+			LimitFSIZE:           "infinity",
+			LimitCPU:             "infinity",
+			LimitAS:              "infinity",
+			LimitNOFILE:          64000,
+			LimitNPROC:           64000,
+			LimitMEMLOCK:         "infinity",
+			TasksMax:             "infinity",
+			TasksAccounting:      false,
+			KillMode:             "mixed",
+			Restart:              "on-failure",
+			RestartSec:           "180s",
+		},
+		Install: Install{
+			WantedBy: "multi-user.target",
+		},
+	}
+}

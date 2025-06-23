@@ -1,0 +1,5 @@
+#Intellij idea
+.idea/
+**/.idea/
+/idea/
+/oasis*.tar.gz
